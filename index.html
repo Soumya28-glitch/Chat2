@@ -4,17 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Encrypted Vault</title>
-    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-    
-    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
-
     <div class="app-container">
         <div id="login">
             <h2>E2EE Chat</h2>
@@ -23,38 +19,26 @@
             <p id="login-error"></p>
             <button type="button" class="primary-btn" id="unlock-btn">Unlock Room</button>
         </div>
-
         <div id="chat" style="display:none;">
-            <div class="chat-header">
-                <span id="header-name">Vault</span>
-            </div>
-            
+            <div class="chat-header"><span id="header-name">Vault</span></div>
             <div id="messages"></div>
-
             <div id="attachment-menu">
-                <div class="attach-item" onclick="triggerInput('doc-input')"><div class="attach-icon bg-doc">📄</div> Document</div>
-                <div class="attach-item" onclick="triggerInput('cam-input')"><div class="attach-icon bg-cam">📷</div> Camera</div>
-                <div class="attach-item" onclick="triggerInput('gal-input')"><div class="attach-icon bg-gal">🖼️</div> Gallery</div>
+                <div class="attach-item" onclick="triggerInput('doc-input')"><div class="attach-icon bg-doc">📄</div> Doc</div>
+                <div class="attach-item" onclick="triggerInput('cam-input')"><div class="attach-icon bg-cam">📷</div> Cam</div>
+                <div class="attach-item" onclick="triggerInput('gal-input')"><div class="attach-icon bg-gal">🖼️</div> Gal</div>
                 <div class="attach-item" onclick="triggerInput('aud-input')"><div class="attach-icon bg-aud">🎧</div> Audio</div>
-                <div class="attach-item" onclick="shareLocation()"><div class="attach-icon bg-loc">📍</div> Location</div>
+                <div class="attach-item" onclick="shareLocation()"><div class="attach-icon bg-loc">📍</div> GPS</div>
             </div>
-
             <input type="file" id="doc-input" accept=".pdf,.doc,.docx,.txt" onchange="handleRawFile(event)">
             <input type="file" id="cam-input" accept="image/*" capture="environment" onchange="handleImageFile(event)">
             <input type="file" id="gal-input" accept="image/*" onchange="handleImageFile(event)">
             <input type="file" id="aud-input" accept="audio/*" onchange="handleRawFile(event)">
-
             <div id="recording-viz">
                 <div class="rec-icon">●</div>
-                <div class="rec-wave-container">
-                    <div class="rec-wave-bar" style="animation-delay: -0.4s"></div>
-                    <div class="rec-wave-bar"></div>
-                    <div class="rec-wave-bar" style="animation-delay: -0.2s"></div>
-                </div>
+                <div class="rec-wave-container"><div class="rec-wave-bar"></div><div class="rec-wave-bar"></div><div class="rec-wave-bar"></div></div>
                 <div id="recording-timer">0:00</div>
                 <div id="recording-cancel"><div class="cancel-btn">‹</div> Slide to cancel</div>
             </div>
-
             <div id="input-area-container">
                 <div id="input-area">
                     <button class="icon-btn" onclick="toggleAttachments()">📎</button>
@@ -65,7 +49,6 @@
             </div>
         </div>
     </div>
-
-    <script src="script.js?v=12"></script>
+    <script src="script.js?v=14"></script>
 </body>
 </html>
