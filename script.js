@@ -1,114 +1,110 @@
-const REQUIRED_PIN = "Somu@Khushi";
-const MAX_FILE_SIZE = 90 * 1024; 
-let myName;
-let chatRef; 
+* { box-sizing: border-box; }
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCb62x3gcGMdvoEBbx4xYzzAyGm_Xn9kWQ",
-    authDomain: "secretvault-71747.firebaseapp.com",
-    projectId: "secretvault-71747",
-    storageBucket: "secretvault-71747.firebasestorage.app",
-    messagingSenderId: "331400127268",
-    appId: "1:331400127268:web:7a3f6e71a595a9ba2509b1",
-    measurementId: "G-NFL3EYMZXF"
-};
-
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-
-document.addEventListener("visibilitychange", function() { if (document.hidden) lockApp(); });
-
-function lockApp() {
-    if (document.getElementById('chat').style.display === 'flex') {
-        document.getElementById('chat').style.display = 'none';
-        document.getElementById('login').style.display = 'flex';
-        document.getElementById('secret-code').value = ''; 
-        if (chatRef) { chatRef.off(); chatRef = null; }
-        const btn = document.getElementById('unlock-btn');
-        if (btn) { btn.innerText = "Unlock Room (Ready)"; btn.style.opacity = "1"; }
-        document.getElementById('messages').innerHTML = ''; 
-    }
+:root {
+    --primary: #075e54; 
+    --secondary: #128c7e;
+    --input-bg: #202c33;
+    --mic-active: #ff416c;
 }
 
-function showError(message) {
-    const errBox = document.getElementById('login-error');
-    errBox.innerText = "⚠️ " + message;
-    errBox.style.display = 'block';
-    const btn = document.getElementById('unlock-btn');
-    if (btn) { btn.innerText = "Unlock Room (Ready)"; btn.style.opacity = "1"; }
+body { 
+    font-family: 'Poppins', sans-serif; 
+    margin: 0; padding: 0; 
+    background: #111; color: white; 
+    overflow: hidden; 
+    position: fixed; 
+    top: 0; bottom: 0; left: 0; right: 0; 
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-    const unlockBtn = document.getElementById('unlock-btn');
-    if(unlockBtn) { unlockBtn.innerText = "Unlock Room (Ready)"; unlockBtn.addEventListener('click', joinChat); }
-    const codeInput = document.getElementById('secret-code');
-    if(codeInput) codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinChat(); });
-    const msgInput = document.getElementById('msg-input');
-    if(msgInput) msgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
-    setupMicLogic(); 
-});
-
-window.joinChat = joinChat;
-window.toggleAttachments = toggleAttachments;
-window.closeAttachments = closeAttachments;
-window.triggerInput = triggerInput;
-window.sendMessage = sendMessage;
-window.shareLocation = shareLocation;
-window.handleRawFile = handleRawFile;
-window.handleImageFile = handleImageFile;
-
-function toggleAttachments() { const menu = document.getElementById('attachment-menu'); menu.style.display = menu.style.display === 'grid' ? 'none' : 'grid'; }
-function closeAttachments() { document.getElementById('attachment-menu').style.display = 'none'; }
-function triggerInput(id) { closeAttachments(); document.getElementById(id).click(); }
-
-function joinChat() {
-    try {
-        document.getElementById('login-error').style.display = 'none';
-        const btn = document.getElementById('unlock-btn');
-        btn.innerText = "Decrypting Vault...";
-        btn.style.opacity = "0.7";
-        myName = document.getElementById('username').value.trim();
-        const code = document.getElementById('secret-code').value.trim();
-        if (!myName) return showError("Please enter your Name!");
-        if (code !== REQUIRED_PIN) return showError("Incorrect PIN!");
-        document.getElementById('login').style.display = 'none';
-        document.getElementById('chat').style.display = 'flex';
-        document.getElementById('header-name').innerText = myName;
-        const roomHash = CryptoJS.MD5(code).toString();
-        chatRef = database.ref('secure_vaults/' + roomHash);
-        addSystemMessage("Syncing with cloud database...");
-
-        chatRef.on('child_added', (snapshot) => {
-            const msgData = snapshot.val();
-            const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-            if (Date.now() - msgData.timestamp > SEVEN_DAYS_MS) { snapshot.ref.remove(); return; }
-            try {
-                const bytes = CryptoJS.AES.decrypt(msgData.payload, REQUIRED_PIN);
-                const data = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-                if (data) { renderMessage(data.sender, data.text, data.sender === myName, data.time, data.isFile, data.fileName, data.fileType, data.isVoiceNote); }
-            } catch (e) {}
-        });
-    } catch (error) { showError(error.message); }
+.app-container { 
+    width: 100%; height: 100%; 
+    max-width: 450px; 
+    margin: 0 auto;
+    background: #0b141a; display: flex; flex-direction: column; position: relative; 
 }
 
-function sendMessage() {
-    const text = document.getElementById('msg-input').value.trim();
-    if (text) { sendPayload(text, false, "", "", false); document.getElementById('msg-input').value = ''; closeAttachments(); }
+#login { display: flex; flex-direction: column; gap: 20px; padding: 40px; margin: auto; width: 100%; max-width: 350px; text-align: center; z-index: 100; }
+h2 { margin: 0; font-weight: 600; font-size: 24px; color: #fff; }
+input[type="text"], input[type="password"] { padding: 15px; border-radius: 8px; border: none; background: #2a2f32; color: white; font-size: 15px; outline: none; width: 100%;}
+button.primary-btn { padding: 15px; background: #00a884; color: #111; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%;}
+
+#chat { display: none; flex-direction: column; height: 100%; position: relative; z-index: 10; overflow: hidden; }
+.chat-header { padding: 15px 20px; background: #202c33; border-bottom: 1px solid #2a2f32; font-weight: 600; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+
+.active-status-bar {
+    background: #111b21;
+    color: #00a884;
+    font-size: 11px;
+    padding: 5px 20px;
+    border-bottom: 1px solid #2a2f32;
+    font-weight: 500;
+    display: none;
 }
 
-function shareLocation() {
-    closeAttachments();
-    if (navigator.geolocation) {
-        addSystemMessage("Locating...");
-        navigator.geolocation.getCurrentPosition((pos) => {
-            const link = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
-            sendPayload(`📍 My Location:\n${link}`, false, "", "", false);
-        });
-    }
+#messages { 
+    flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; 
+    background-image: url('bg.jpg'); 
+    background-size: cover; background-position: center; position: relative; 
 }
+#messages::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.35); z-index: 1; pointer-events: none;}
+#messages * { z-index: 2; } 
 
-function handleRawFile(event) {
-    const file = event.target.files[0];
+.msg-wrapper { display: flex; flex-direction: column; max-width: 80%; z-index: 2;}
+.my-msg-wrapper { align-self: flex-end; align-items: flex-end; }
+.their-msg-wrapper { align-self: flex-start; align-items: flex-start; }
+
+.msg { padding: 8px 12px; border-radius: 12px; font-size: 15px; word-wrap: break-word; line-height: 1.4; color: #e9edef; box-shadow: 0 1px 2px rgba(0,0,0,0.3); position: relative; }
+.my-msg { background: #005c4b; border-top-right-radius: 0; }
+.their-msg { background: #202c33; border-top-left-radius: 0; }
+.meta { font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 2px; text-align: right; }
+
+.msg img { max-width: 100%; border-radius: 6px; margin-bottom: 5px; display: block; }
+.file-link { color: #53bdeb; text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 5px; }
+
+.msg audio { width: 220px; max-width: 100%; height: 35px; border-radius: 12px; background: transparent; }
+
+#input-area-container { 
+    min-height: 70px; display: flex; align-items: center; z-index: 20; 
+    background: var(--input-bg); border-top: 1px solid #2a2f32; 
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); 
+    width: 100%; flex-shrink: 0; 
+}
+#input-area { display: flex; width: 100%; gap: 8px; align-items: center; }
+#msg-input { 
+    flex-grow: 1; border-radius: 20px; padding: 12px 15px; background: #2a2f32; 
+    border: none; color: white; outline: none; font-family: 'Poppins', sans-serif;
+    min-width: 0; 
+}
+.icon-btn { background: transparent; border: none; font-size: 24px; color: #8696a0; cursor: pointer; padding: 5px; flex-shrink: 0;}
+#send-btn { background: #00a884; color: white; border-radius: 50%; width: 45px; height: 45px; display: flex; justify-content: center; align-items: center; font-size: 18px; flex-shrink: 0; border: none; margin: 0; }
+
+#mic-btn-dedicated.active { color: var(--mic-active); animation: pulseRed 1s infinite; }
+@keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(255, 65, 108, 0.7); border-radius: 50%;} 70% { box-shadow: 0 0 0 15px rgba(255, 65, 108, 0); border-radius: 50%;} 100% { box-shadow: 0 0 0 0 rgba(255, 65, 108, 0); border-radius: 50%;} }
+
+#recording-viz { display: none; position: absolute; bottom: 0; left: 0; right: 0; height: 70px; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 30; align-items: center; justify-content: center; padding: 0 20px; color: white; gap: 15px; font-size: 14px; border-top: 1px solid #2a2f32; box-sizing: border-box;}
+#recording-viz.active { display: flex; }
+
+.rec-icon { color: var(--mic-active); font-size: 18px; animation: flashDot 0.8s infinite; }
+@keyframes flashDot { 50% { opacity: 0; } }
+#recording-timer { font-weight: 600; color: #e9edef;}
+.rec-wave-container { display: flex; gap: 3px; align-items: flex-end; height: 15px; }
+.rec-wave-bar { width: 3px; height: 3px; background-color: var(--mic-active); border-radius: 2px; animation: waveBar 0.8s infinite ease-in-out; }
+@keyframes waveBar { 0%, 100% { height: 3px; } 50% { height: 15px; } }
+#recording-cancel { position: absolute; bottom: 15px; font-size: 12px; color: #aaa; width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px;}
+.cancel-btn { font-size: 10px; padding: 3px; background: rgba(255,255,255,0.1); border-radius: 50%; width: 15px; height: 15px; display: flex; justify-content: center; align-items: center; color: white;}
+
+#attachment-menu { 
+    display: none; position: absolute; bottom: 70px; left: 10px; right: 10px; 
+    background: #233138; border-radius: 16px; padding: 20px; 
+    grid-template-columns: repeat(3, 1fr); gap: 20px; 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 20; animation: popUp 0.2s ease-out;
+}
+@keyframes popUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.attach-item { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #e9edef; font-size: 12px; cursor: pointer; }
+.attach-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; color: white; }
+.bg-doc { background: #7f66ff; } .bg-cam { background: #d3396d; } .bg-gal { background: #bf59cf; } .bg-aud { background: #f26522; } .bg-loc { background: #009966; }
+input[type="file"] { display: none; }
     if (!file || file.size > MAX_FILE_SIZE) return addSystemMessage("Too large (>90KB)");
     const reader = new FileReader();
     reader.onload = (e) => sendPayload(e.target.result, true, file.name, file.type, false);
