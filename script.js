@@ -5,6 +5,62 @@ let client;
 let roomTopic;
 let myName;
 
+// --- Security: Auto-Lock Feature ---
+// This listens for when you minimize the app or turn off your screen
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+        lockApp();
+    }
+});
+
+function lockApp() {
+    // Only lock if we are actually in the chat screen
+    if (document.getElementById('chat').style.display === 'flex') {
+        document.getElementById('chat').style.display = 'none';
+        document.getElementById('login').style.display = 'flex';
+        document.getElementById('secret-code').value = ''; // Wipe PIN
+        
+        if (client) {
+            client.end(); // Disconnect completely for security
+            client = null;
+        }
+        
+        const btn = document.getElementById('unlock-btn');
+        if (btn) {
+            btn.innerText = "Unlock Room (Ready)";
+            btn.style.opacity = "1";
+        }
+        
+        // Wipe the messages from the screen so no one can peek
+        document.getElementById('messages').innerHTML = ''; 
+    }
+}
+
+// --- Persistence: Save to Phone Memory ---
+function saveMessageToPhone(encryptedMsg) {
+    let history = JSON.parse(localStorage.getItem('vault_history') || '[]');
+    history.push(encryptedMsg);
+    // Keep only the last 150 messages so your phone doesn't run out of storage
+    if (history.length > 150) history.shift(); 
+    localStorage.setItem('vault_history', JSON.stringify(history));
+}
+
+function loadHistoryFromPhone() {
+    document.getElementById('messages').innerHTML = ''; // Clear board first
+    let history = JSON.parse(localStorage.getItem('vault_history') || '[]');
+    history.forEach(encryptedMsg => {
+        try {
+            const bytes = CryptoJS.AES.decrypt(encryptedMsg, REQUIRED_PIN);
+            const data = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+            if (data) {
+                renderMessage(data.sender, data.text, data.sender === myName, data.time, data.isFile, data.fileName, data.fileType, data.isVoiceNote);
+            }
+        } catch (e) {
+            // Ignore if PIN was changed or string is broken
+        }
+    });
+}
+
 // --- Error Handling ---
 function showError(message) {
     const errBox = document.getElementById('login-error');
@@ -20,26 +76,20 @@ function showError(message) {
 // --- MASTER SETUP: Sandbox Bypass ---
 document.addEventListener("DOMContentLoaded", function() {
     const unlockBtn = document.getElementById('unlock-btn');
-    
-    // 1. Visual proof that script.js is successfully linked!
     if(unlockBtn) {
         unlockBtn.innerText = "Unlock Room (Ready)";
-        // Force bind the click event safely
         unlockBtn.addEventListener('click', joinChat);
     }
 
-    // 2. Safe Keyboard mapping
     const codeInput = document.getElementById('secret-code');
     if(codeInput) codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinChat(); });
     
     const msgInput = document.getElementById('msg-input');
     if(msgInput) msgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
     
-    // 3. Setup Mic
     setupMicLogic(); 
 });
 
-// Expose functions globally just in case HTML needs them
 window.joinChat = joinChat;
 window.toggleAttachments = toggleAttachments;
 window.closeAttachments = closeAttachments;
@@ -65,7 +115,6 @@ function joinChat() {
         btn.innerText = "Decrypting...";
         btn.style.opacity = "0.7";
 
-        // Validate Security Libraries
         if (typeof CryptoJS === 'undefined' || typeof mqtt === 'undefined') {
             return showError("Security libraries blocked. Check internet or turn off adblocker.");
         }
@@ -76,19 +125,17 @@ function joinChat() {
         if (!myName) return showError("Please enter your Display Name!");
         if (code !== REQUIRED_PIN) return showError("Incorrect PIN! Try again.");
 
-        // Successful Login UI
         document.getElementById('login').style.display = 'none';
         document.getElementById('chat').style.display = 'flex';
         document.getElementById('header-name').innerText = myName;
 
-        // Secure Room Generation
         roomTopic = "e2ee_vault_xyz_998/" + CryptoJS.MD5(code).toString();
-        
-        // Connect to MQTT Broker
         client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
 
         client.on('connect', () => { 
             client.subscribe(roomTopic); 
+            // Load saved messages BEFORE showing the connection message
+            loadHistoryFromPhone();
             addSystemMessage("Connected to End-to-End Encrypted Vault.");
         });
 
@@ -96,9 +143,11 @@ function joinChat() {
 
         client.on('message', (topic, message) => {
             try {
-                const bytes = CryptoJS.AES.decrypt(message.toString(), REQUIRED_PIN);
+                const msgStr = message.toString();
+                const bytes = CryptoJS.AES.decrypt(msgStr, REQUIRED_PIN);
                 const data = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
                 if (data && data.sender !== myName) {
+                    saveMessageToPhone(msgStr); // Save their message to memory
                     renderMessage(data.sender, data.text, false, data.time, data.isFile, data.fileName, data.fileType, data.isVoiceNote);
                 }
             } catch (e) { console.error("Decryption failed", e); }
@@ -266,6 +315,8 @@ function sendPayload(content, isFile, fileName, fileType, isVoiceNote) {
     
     const encryptedText = CryptoJS.AES.encrypt(JSON.stringify(payload), REQUIRED_PIN).toString();
     client.publish(roomTopic, encryptedText);
+    
+    saveMessageToPhone(encryptedText); // Save our own message to memory
     renderMessage(myName, content, true, timeString, isFile, fileName, fileType, isVoiceNote);
 }
 
