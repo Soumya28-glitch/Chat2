@@ -11,23 +11,25 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
     
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
     <div class="app-container">
         <div id="login">
             <h2>E2EE Chat</h2>
-            <input type="text" id="username" placeholder="Your Name">
-            <input type="password" id="secret-code" placeholder="Secret PIN">
+            <input type="text" id="username" placeholder="Your Name" autocomplete="off">
+            <input type="password" id="secret-code" placeholder="Secret PIN" autocomplete="off">
             <p id="login-error"></p>
             <button type="button" class="primary-btn" id="unlock-btn">Unlock Room</button>
         </div>
 
-        <div id="chat">
+        <div id="chat" style="display:none;">
             <div class="chat-header">
                 <span id="header-name">Vault</span>
             </div>
+            
+            <div id="active-users" class="active-status-bar"></div>
             
             <div id="messages"></div>
 
@@ -58,7 +60,7 @@
             <div id="input-area-container">
                 <div id="input-area">
                     <button class="icon-btn" onclick="toggleAttachments()">📎</button>
-                    <input type="text" id="msg-input" placeholder="Message..." onclick="closeAttachments()">
+                    <input type="text" id="msg-input" placeholder="Message..." onclick="closeAttachments()" autocomplete="off">
                     <button class="icon-btn" id="mic-btn-dedicated">🎤</button>
                     <button id="send-btn" onclick="sendMessage()">➤</button>
                 </div>
@@ -66,6 +68,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=8"></script>
+    <script src="script.js?v=10"></script>
 </body>
 </html>
