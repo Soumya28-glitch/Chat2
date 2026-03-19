@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-    <link rel="stylesheet" href="style.css?v=14">
+    <link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
     <div class="app-container">
@@ -22,33 +22,16 @@
         <div id="chat" style="display:none;">
             <div class="chat-header"><span id="header-name">Vault</span></div>
             <div id="messages"></div>
-            <div id="attachment-menu">
-                <div class="attach-item" onclick="triggerInput('doc-input')"><div class="attach-icon bg-doc">📄</div> Doc</div>
-                <div class="attach-item" onclick="triggerInput('cam-input')"><div class="attach-icon bg-cam">📷</div> Cam</div>
-                <div class="attach-item" onclick="triggerInput('gal-input')"><div class="attach-icon bg-gal">🖼️</div> Gal</div>
-                <div class="attach-item" onclick="triggerInput('aud-input')"><div class="attach-icon bg-aud">🎧</div> Audio</div>
-                <div class="attach-item" onclick="shareLocation()"><div class="attach-icon bg-loc">📍</div> GPS</div>
-            </div>
-            <input type="file" id="doc-input" accept=".pdf,.doc,.docx,.txt" onchange="handleRawFile(event)">
-            <input type="file" id="cam-input" accept="image/*" capture="environment" onchange="handleImageFile(event)">
-            <input type="file" id="gal-input" accept="image/*" onchange="handleImageFile(event)">
-            <input type="file" id="aud-input" accept="audio/*" onchange="handleRawFile(event)">
-            <div id="recording-viz">
-                <div class="rec-icon">●</div>
-                <div class="rec-wave-container"><div class="rec-wave-bar"></div><div class="rec-wave-bar"></div><div class="rec-wave-bar"></div></div>
-                <div id="recording-timer">0:00</div>
-                <div id="recording-cancel"><div class="cancel-btn">‹</div> Slide to cancel</div>
-            </div>
             <div id="input-area-container">
                 <div id="input-area">
                     <button class="icon-btn" onclick="toggleAttachments()">📎</button>
-                    <input type="text" id="msg-input" placeholder="Message..." onclick="closeAttachments()" autocomplete="off">
+                    <input type="text" id="msg-input" placeholder="Message..." autocomplete="off">
                     <button class="icon-btn" id="mic-btn-dedicated">🎤</button>
                     <button id="send-btn" onclick="sendMessage()">➤</button>
                 </div>
             </div>
         </div>
     </div>
-    <script src="script.js?v=14"></script>
+    <script src="script.js?v=17"></script>
 </body>
 </html>
