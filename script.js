@@ -13,19 +13,17 @@ const firebaseConfig = {
     measurementId: "G-NFL3EYMZXF"
 };
 
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
+// --- Security Features ---
 document.addEventListener("visibilitychange", function() { if (document.hidden) lockApp(); });
 
 function lockApp() {
     if (document.getElementById('chat').style.display === 'flex') {
-        if (myName && chatRef) {
-            database.ref(chatRef.path.toString() + '/online_users/' + myName).remove();
-        }
         document.getElementById('chat').style.display = 'none';
         document.getElementById('login').style.display = 'flex';
-        document.getElementById('active-users').style.display = 'none';
         document.getElementById('secret-code').value = ''; 
         if (chatRef) { chatRef.off(); chatRef = null; }
         const btn = document.getElementById('unlock-btn');
@@ -42,6 +40,7 @@ function showError(message) {
     if (btn) { btn.innerText = "Unlock Room (Ready)"; btn.style.opacity = "1"; }
 }
 
+// --- MASTER SETUP: Force-Fixing the Button ---
 function initApp() {
     const unlockBtn = document.getElementById('unlock-btn');
     if(unlockBtn) {
@@ -91,25 +90,9 @@ function joinChat() {
         const roomHash = CryptoJS.MD5(code).toString();
         chatRef = database.ref('secure_vaults/' + roomHash);
 
-        // Presence Logic
-        const presenceRef = database.ref('secure_vaults/' + roomHash + '/online_users/' + myName);
-        const statusBar = document.getElementById('active-users');
-        statusBar.style.display = 'block';
-        presenceRef.set(true);
-        presenceRef.onDisconnect().remove();
-
-        database.ref('secure_vaults/' + roomHash + '/online_users').on('value', (snapshot) => {
-            const users = snapshot.val();
-            if (users) {
-                const names = Object.keys(users).map(u => u === myName ? "You" : u).join(", ");
-                statusBar.innerText = "● Active: " + names;
-            }
-        });
-
         addSystemMessage("Syncing database...");
 
         chatRef.on('child_added', (snapshot) => {
-            if (snapshot.key === 'online_users') return;
             const msgData = snapshot.val();
             const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
             if (Date.now() - msgData.timestamp > SEVEN_DAYS_MS) { snapshot.ref.remove(); return; }
