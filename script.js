@@ -12,10 +12,11 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
-let myName, chatRef;
+let myName, chatRef, systemMsg;
 
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('unlock-btn').onclick = joinChat;
+    document.getElementById('msg-input').onkeydown = (e) => { if(e.key === 'Enter') sendMessage(); };
 });
 
 function joinChat() {
@@ -26,11 +27,17 @@ function joinChat() {
     document.getElementById('login').style.display = 'none';
     document.getElementById('chat').style.display = 'flex';
     
+    // Force Wake Firebase
     database.goOnline();
     const roomHash = CryptoJS.MD5(REQUIRED_PIN).toString();
     chatRef = database.ref('vaults/' + roomHash);
 
+    systemMsg = addSystemMessage("Connecting to Secure Cloud...");
+
     chatRef.on('child_added', (snapshot) => {
+        // Remove "Connecting" message as soon as data arrives
+        if(systemMsg) { systemMsg.remove(); systemMsg = null; }
+        
         const msgData = snapshot.val();
         try {
             const bytes = CryptoJS.AES.decrypt(msgData.payload, REQUIRED_PIN);
@@ -59,46 +66,19 @@ function renderMessage(sender, content, isMine, time) {
     container.appendChild(msgDiv);
     container.scrollTop = container.scrollHeight;
 }
+
+function addSystemMessage(text) {
+    const msg = document.createElement('div');
+    msg.id = "sys-msg";
+    msg.style = "text-align:center; font-size:11px; color:#aaa; margin:10px; background:rgba(0,0,0,0.5); padding:5px; border-radius:10px;";
     msg.innerText = "🔒 " + text;
     document.getElementById('messages').appendChild(msg);
+    return msg;
 }
 
-// --- Attachment/Mic Handlers (Simplified for stability) ---
 function toggleAttachments() { 
     const m = document.getElementById('attachment-menu'); 
     m.style.display = m.style.display === 'grid' ? 'none' : 'grid'; 
 }
 function closeAttachments() { document.getElementById('attachment-menu').style.display = 'none'; }
 function triggerInput(id) { closeAttachments(); document.getElementById(id).click(); }
-
-function setupMicLogic() {
-    let mediaRecorder, chunks = [], isRec = false;
-    const btn = document.getElementById('mic-btn-dedicated');
-    btn.onpointerdown = () => {
-        navigator.mediaDevices.getUserMedia({ audio: true }).then(s => {
-            mediaRecorder = new MediaRecorder(s);
-            mediaRecorder.ondataavailable = e => chunks.push(e.data);
-            mediaRecorder.start();
-            isRec = true; btn.classList.add('active');
-            document.getElementById('recording-viz').classList.add('active');
-        });
-    };
-    btn.onpointerup = () => {
-        if (!isRec) return;
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            const r = new FileReader();
-            r.onload = (e) => {
-                const payload = { sender: myName, text: e.target.result, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), isFile: true, isVoiceNote: true };
-                const enc = CryptoJS.AES.encrypt(JSON.stringify(payload), REQUIRED_PIN).toString();
-                chatRef.push({ payload: enc, timestamp: Date.now() });
-            };
-            r.readAsDataURL(blob);
-            mediaRecorder.stream.getTracks().forEach(t => t.stop());
-        };
-        mediaRecorder.stop();
-        isRec = false; btn.classList.remove('active');
-        document.getElementById('recording-viz').classList.remove('active');
-        chunks = [];
-    };
-}
